@@ -91,3 +91,92 @@ def general_conv2d(in_channels,out_channels, ksize=3, strides=2, padding=1, do_b
                 nn.Tanh()
             )
     return conv2d
+
+class conv_block(nn.Module):
+    def __init__(self,in_channels,out_channels):
+        super(conv_block,self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3,stride=1,padding=1,bias=True),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3,stride=1,padding=1,bias=True),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self,x):
+        x = self.conv(x)
+        return x
+
+class up_conv(nn.Module):
+    def __init__(self,in_channels,out_channels):
+        super(up_conv,self).__init__()
+        self.up = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(in_channels,out_channels,kernel_size=3,stride=1,padding=1,bias=True),
+		    nn.BatchNorm2d(out_channels),
+			nn.ReLU(inplace=True)
+        )
+
+    def forward(self,x):
+        x = self.up(x)
+        return x
+
+class Recurrent_block(nn.Module):
+    def __init__(self,out_channels,t=2):
+        super(Recurrent_block,self).__init__()
+        self.t = t
+        self.out_channels = out_channels
+        self.conv = nn.Sequential(
+            nn.Conv2d(out_channels,out_channels,kernel_size=3,stride=1,padding=1,bias=True),
+		    nn.BatchNorm2d(out_channels),
+			nn.ReLU(inplace=True)
+        )
+
+    def forward(self,x):
+        for i in range(self.t):
+
+            if i==0:
+                x1 = self.conv(x)
+            
+            x1 = self.conv(x+x1)
+        return x1
+        
+class RRCNN_block(nn.Module):
+    def __init__(self,in_channels,out_channels,t=2):
+        super(RRCNN_block,self).__init__()
+        self.RCNN = nn.Sequential(
+            Recurrent_block(out_channels,t=t),
+            Recurrent_block(out_channels,t=t)
+        )
+        self.Conv_1x1 = nn.Conv2d(in_channels,out_channels,kernel_size=3,stride=2,padding=1)
+
+    def forward(self,x):
+        x = self.Conv_1x1(x)
+        x1 = self.RCNN(x)
+        return x+x1	#residual learning
+
+class RCNN_block(nn.Module):
+    def __init__(self,in_channels,out_channels,t=2):
+        super(RCNN_block,self).__init__()
+        self.RCNN = nn.Sequential(
+            Recurrent_block(out_channels,t=t),
+            Recurrent_block(out_channels,t=t)
+        )
+        self.Conv_1x1 = nn.Conv2d(in_channels,out_channels,kernel_size=3,stride=2,padding=1)
+
+    def forward(self,x):
+        x = self.Conv_1x1(x)
+        x = self.RCNN(x)
+        return x 
+        
+class ResCNN_block(nn.Module):
+    def __init__(self,in_channels,out_channels):
+        super(ResCNN_block,self).__init__()
+        self.Conv = conv_block(in_channels, out_channels)
+        self.Conv_1x1 = nn.Conv2d(in_channels,out_channels,kernel_size=3,stride=2,padding=1)
+
+    def forward(self,x):
+        x1 = self.Conv_1x1(x)
+        x = self.Conv(x)
+        return x+x1
