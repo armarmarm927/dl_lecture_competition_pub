@@ -116,7 +116,7 @@ def main(args: DictConfig):
     #   optimizer
     # ------------------
     optimizer = torch.optim.Adam(model.parameters(), lr=args.train.initial_learning_rate, weight_decay=args.train.weight_decay)
-    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=0.001)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=20, eta_min=0.001)
     # ------------------
     #   Start training
     # ------------------
