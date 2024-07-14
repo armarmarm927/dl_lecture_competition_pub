@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, Any
 import os
 import time
-
+from torch.optim import lr_scheduler
 
 class RepresentationType(Enum):
     VOXEL = auto()
@@ -116,6 +116,7 @@ def main(args: DictConfig):
     #   optimizer
     # ------------------
     optimizer = torch.optim.Adam(model.parameters(), lr=args.train.initial_learning_rate, weight_decay=args.train.weight_decay)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=0.001)
     # ------------------
     #   Start training
     # ------------------
@@ -133,6 +134,7 @@ def main(args: DictConfig):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            scheduler.step() 
 
             total_loss += loss.item()
         print(f'Epoch {epoch+1}, Loss: {total_loss / len(train_data)}')
